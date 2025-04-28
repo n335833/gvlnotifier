@@ -6,7 +6,7 @@ env:
 on:
   schedule:
     - cron: "*/15 * * * *"  # 每 15 分鐘執行一次
-  workflow_dispatch:  # 手動觸發也可以
+  workflow_dispatch:  # 手動觸發
 
 jobs:
   build:
@@ -14,9 +14,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0  # 重要！完整拉取 commit 歷史，才能 push
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -35,13 +36,12 @@ jobs:
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
+          
+          git add -f sent_links.json  # 強制加入，即使 .gitignore 忽略也沒關係
 
-          git add sent_links.json
-
-          # 檢查 sent_links.json 是否真的有變更
           if ! git diff --cached --quiet; then
             git commit -m "Update sent_links.json [skip ci]"
-            git push
+            git push origin HEAD:main
           else
             echo "No changes to sent_links.json. Skipping push."
           fi
