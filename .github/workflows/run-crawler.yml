@@ -1,46 +1,45 @@
 name: Run Crawler Every 15 Minutes
-
 env:
   DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-
+  
 on:
   schedule:
     - cron: "*/15 * * * *"  # 每 15 分鐘執行一次
-  workflow_dispatch:
+  workflow_dispatch:  # 手動觸發
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # 運行環境
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
+        uses: actions/checkout@v2
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
-
+          python-version: '3.x'  # 設定 Python 版本
+          
+      - name: Restore sent_links.json cache
+        uses: actions/cache@v3
+        with:
+          path: sent_links.json
+          key: sent-links-cache
+          
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.txt  # 安裝依賴
 
       - name: Run crawler script
-        run: python crawler.py
+        run: python crawler.py  # 執行爬蟲程式
 
-      - name: Commit and Push updated sent_links.json (if changed)
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
-          
-          git add -f sent_links.json
+      - name: Push result to Discord
+        run: echo "已執行爬蟲並通知 Discord"
 
-          if ! git diff --cached --quiet; then
-            git commit -m "Update sent_links.json [skip ci]"
-            git push origin HEAD:main
-          else
-            echo "No changes to sent_links.json. Skipping push."
+      - name: Save updated sent_links.json to cache
+        if: always()
+        uses: actions/cache/save@v3
+        with:
+          path: sent_links.json
+          key: sent-links-cache   
